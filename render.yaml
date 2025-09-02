@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: kardiverse-hologram
+    env: docker
+    plan: starter
+    dockerfilePath: Dockerfile
+    buildCommand: npm ci --legacy-peer-deps && npm run build
+    startCommand: serve -s dist -l 8080
+    envVars:
+      - key: AI_TTS_API_KEY
+        sync: false
