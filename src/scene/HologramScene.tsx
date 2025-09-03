@@ -23,12 +23,12 @@ export default function HologramScene({entryMode=false, projectorMode=false}:{en
       <ambientLight intensity={0.6} />
       <directionalLight intensity={0.2} position={[5,5,5]} />
       <Suspense fallback={null}>
-        <HologramAvatar modelUrl={'/src/assets/avatar.glb'} scale={1.2} />
+        <HologramAvatar modelUrl={'/avatar.glb'} scale={1.2} />
         <LogoGlow />
         <AvatarLipSync audioElementId={'kardi-voice'} />
         <Environment preset='city' />
       </Suspense>
     </Canvas>
-    <audio id='kardi-voice' src='/src/assets/voice.mp3' crossOrigin='anonymous'></audio>
+    <audio id='kardi-voice' src='/voice.mp3' crossOrigin='anonymous'></audio>
   </div>)
 }
