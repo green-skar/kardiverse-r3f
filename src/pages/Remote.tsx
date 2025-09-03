@@ -1,2 +1,25 @@
 import React from 'react'
-export default function Remote(){ const send=()=>{ const bc=new BroadcastChannel('kardi-cue'); bc.postMessage('cue'); fetch('/api/log',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:'remote',ts:Date.now()})}) } return <div className='app-stage'><div style={{textAlign:'center'}}><h3>Remote</h3><button className='button' onClick={send}>Send Cue</button></div></div> }
+
+export default function Remote() {
+    const send = () => {
+        const bc = new BroadcastChannel('kardi-cue')
+        bc.postMessage('cue')
+
+        fetch('/api/log', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ type: 'remote', ts: Date.now() }),
+        })
+    }
+
+    return (
+        <div className="app-stage">
+            <div style={{ textAlign: 'center' }}>
+                <h3>Remote</h3>
+                <button className="button" onClick={send}>
+                    Send Cue
+                </button>
+            </div>
+        </div>
+    )
+}

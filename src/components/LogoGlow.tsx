@@ -1,2 +1,16 @@
 import React from 'react'
-export default function LogoGlow(){return <div style={{position:'absolute',right:20,top:20,color:'#39e6ff'}}>Kardiverse</div>}
+import { Text } from '@react-three/drei'
+
+export default function LogoGlow() {
+    return (
+        <Text
+            position={[1.5, 2, 0]}
+            fontSize={0.5}
+            color="#39e6ff"
+            anchorX="right"
+            anchorY="top"
+        >
+            Kardiverse
+        </Text>
+    )
+}
