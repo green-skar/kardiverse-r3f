@@ -47,9 +47,10 @@ app.get("/api/tts", async (req, res) => {
 });
 
 // Fallback: React Router
-app.get("/*", (req, res) => {
+app.get(/.*/, (req, res) => {
     res.sendFile(path.join(buildPath, "index.html"));
 });
+
 
 app.listen(PORT, () => {
     console.log(`🚀 Server running at http://localhost:${PORT}`);
