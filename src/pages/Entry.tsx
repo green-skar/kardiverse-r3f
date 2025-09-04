@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { Link } from 'react-router-dom'
 import HologramScene from '../scene/HologramScene'
 import { useAppStore } from '../store'
@@ -6,43 +6,33 @@ import axios from 'axios'
 
 export default function Entry() {
   const addActivation = useAppStore(s => s.addActivation)
-  const [greetingUrl, setGreetingUrl] = useState<string | null>(null)
-  const [hasPlayed, setHasPlayed] = useState(false)
 
-  // 🔊 Auto play greeting once on mount
-  useEffect(() => {
-    const fetchGreeting = async () => {
-      try {
-        const res = await fetch(`/api/tts?text=${encodeURIComponent("Hello, welcome to the gates of display from Kardiverse")}`)
-        const blob = await res.blob()
-        const url = URL.createObjectURL(blob)
-        setGreetingUrl(url)
+  const activate = async () => {
+    try {
+      // 1. Log the activation
+      addActivation()
+      axios.post('/api/log', { type: 'activation', ts: Date.now() }).catch(() => { })
 
-        const audio = document.getElementById('kardi-voice') as HTMLAudioElement | null
-        if (audio && !hasPlayed) {
-          audio.src = url
-          audio.currentTime = 0
-          audio.play().catch(() => { })
-          setHasPlayed(true)
-        }
-      } catch (err) {
-        console.error("Failed to fetch greeting TTS:", err)
+      // 2. Fetch TTS audio from server
+      const res = await fetch(
+        `/api/tts?text=${encodeURIComponent("Hello, welcome to the gates of display from Kardiverse")}`
+      )
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+
+      // 3. Play the audio & trigger lipsync
+      const audio = document.getElementById('kardi-voice') as HTMLAudioElement
+      if (audio) {
+        audio.src = url
+        audio.currentTime = 0
+        await audio.play().catch(() => { })
       }
-    }
 
-    fetchGreeting()
-  }, [hasPlayed])
-
-  const activate = () => {
-    addActivation()
-    axios.post('/api/log', { type: 'activation', ts: Date.now() }).catch(() => { })
-    const bc = new BroadcastChannel('kardi-cue')
-    bc.postMessage('cue')
-
-    const audio = document.getElementById('kardi-voice') as HTMLAudioElement | null
-    if (audio) {
-      audio.currentTime = 0
-      audio.play().catch(() => { })
+      // 4. Broadcast to hologram scene (for lipsync animation)
+      const bc = new BroadcastChannel('kardi-cue')
+      bc.postMessage('cue')
+    } catch (err) {
+      console.error("Activation failed:", err)
     }
   }
 
@@ -55,10 +45,10 @@ export default function Entry() {
         <button className='button' onClick={activate}>Activate Hologram</button>
         <Link to='/projector'><button className='button'>Open Projector</button></Link>
         <Link to='/remote'><button className='button'>Remote</button></Link>
-
-        {/*  shared audio element for both autoplay + lip sync */}
-        <audio id="kardi-voice" src={greetingUrl || ''} controls style={{ marginTop: "10px" }} />
       </div>
+
+      {/* 🔊 Hidden audio element for lipsync (no controls) */}
+      <audio id='kardi-voice' style={{ display: 'none' }} />
     </div>
   )
 }
