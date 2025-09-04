@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 8080;
 
 // Initialize OpenAI client
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey: process.env.OPENAI_API_KEY || process.env.AI_TTS_API_KEY,
 });
 
 // Middleware
