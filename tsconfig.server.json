@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "target": "ES2019",
+        "lib": [
+            "ES2020"
+        ],
+        "esModuleInterop": true,
+        "strict": true,
+        "module": "CommonJS",
+        "moduleResolution": "Node",
+        "outDir": "dist"
+    },
+    "include": [
+        "server.ts"
+    ]
+}
