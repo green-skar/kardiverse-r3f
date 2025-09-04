@@ -18,10 +18,7 @@ RUN npm ci --omit=dev --legacy-peer-deps || npm i --omit=dev
 # Copy built React app
 COPY --from=builder /app/dist ./dist
 
-# Copy your Express server file
-COPY server.js .
-
 EXPOSE 8080
 
 # Run Express instead of "serve"
-CMD ["node", "server.js"]
+CMD ["node", "dist/server.js"]
