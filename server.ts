@@ -18,7 +18,7 @@ const openai = new OpenAI({
 app.use(express.json());
 
 // Serve React build
-const buildPath = path.join(__dirname, "dist");
+const buildPath = __dirname;
 app.use(express.static(buildPath));
 
 // 🔊 OpenAI TTS endpoint
