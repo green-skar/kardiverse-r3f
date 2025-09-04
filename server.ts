@@ -1,19 +1,17 @@
-import express from "express";
-import path from "path";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
+import express = require("express");
+import path = require("path");
+import * as dotenv from "dotenv";
 import OpenAI from "openai";
 
-//  Recreate __dirname in ESM/TypeScript
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Load environment variables
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
 // Initialize OpenAI client
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY, // make sure to set this in Render/locally
+    apiKey: process.env.OPENAI_API_KEY,
 });
 
 // Middleware
@@ -34,11 +32,10 @@ app.get("/api/tts", async (req, res) => {
 
         const response = await openai.audio.speech.create({
             model: "gpt-4o-mini-tts",
-            voice: "verse", // you can change to "alloy", "ash", etc.
+            voice: "verse",
             input: text,
         });
 
-        // Convert ArrayBuffer → Buffer so Express can send audio
         const buffer = Buffer.from(await response.arrayBuffer());
 
         res.set("Content-Type", "audio/mpeg");
@@ -49,11 +46,11 @@ app.get("/api/tts", async (req, res) => {
     }
 });
 
-// Fallback: always serve index.html for React Router
+// Fallback: React Router
 app.get("*", (req, res) => {
     res.sendFile(path.join(buildPath, "index.html"));
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+    console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
