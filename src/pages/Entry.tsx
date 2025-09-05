@@ -13,10 +13,17 @@ export default function Entry() {
       addActivation()
       axios.post('/api/log', { type: 'activation', ts: Date.now() }).catch(() => { })
 
-      // 2. Fetch TTS audio from server
-      const res = await fetch(
-        `/api/tts?text=${encodeURIComponent("Hello, welcome to the gates of display from Kardiverse")}`
-      )
+      // 2. Fetch TTS audio from server (POST JSON body instead of GET)
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: "Hello, welcome to the gates of display from Kardiverse"
+        })
+      })
+
+      if (!res.ok) throw new Error("TTS request failed")
+
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
 
@@ -47,7 +54,7 @@ export default function Entry() {
         <Link to='/remote'><button className='button'>Remote</button></Link>
       </div>
 
-      {/* 🔊 Hidden audio element for lipsync (no controls) */}
+      {/* 🔊 Hidden audio element for lipsync (no controls shown) */}
       <audio id='kardi-voice' style={{ display: 'none' }} />
     </div>
   )

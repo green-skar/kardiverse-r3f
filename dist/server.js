@@ -36,23 +36,23 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const express = require("express");
-const path = require("path");
+const express_1 = __importDefault(require("express"));
+const path_1 = __importDefault(require("path"));
 const dotenv = __importStar(require("dotenv"));
 const openai_1 = __importDefault(require("openai"));
 // Load environment variables
 dotenv.config();
-const app = express();
+const app = (0, express_1.default)();
 const PORT = process.env.PORT || 8080;
 // Initialize OpenAI client
 const openai = new openai_1.default({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey: process.env.OPENAI_API_KEY || process.env.AI_TTS_API_KEY,
 });
 // Middleware
-app.use(express.json());
+app.use(express_1.default.json());
 // Serve React build
-const buildPath = path.join(__dirname, "dist");
-app.use(express.static(buildPath));
+const buildPath = __dirname;
+app.use(express_1.default.static(buildPath));
 // 🔊 OpenAI TTS endpoint
 app.get("/api/tts", async (req, res) => {
     const text = req.query.text || "Hello from Kardiverse";
@@ -75,8 +75,8 @@ app.get("/api/tts", async (req, res) => {
     }
 });
 // Fallback: React Router
-app.get("*", (req, res) => {
-    res.sendFile(path.join(buildPath, "index.html"));
+app.get(/^(?!\/api).*/, (req, res) => {
+    res.sendFile(path_1.default.join(buildPath, "index.html"));
 });
 app.listen(PORT, () => {
     console.log(`🚀 Server running at http://localhost:${PORT}`);

@@ -5,6 +5,10 @@
       "DOM",
       "ES2020"
     ],
+    "types": [
+      "@react-three/fiber",
+      "@types/three"
+    ],
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,

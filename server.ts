@@ -1,5 +1,5 @@
-import express = require("express");
-import path = require("path");
+import express from "express";
+import path from "path";
 import * as dotenv from "dotenv";
 import OpenAI from "openai";
 
@@ -47,7 +47,7 @@ app.get("/api/tts", async (req, res) => {
 });
 
 // Fallback: React Router
-app.get(/.*/, (req, res) => {
+app.get(/^(?!\/api).*/, (req, res) => {
     res.sendFile(path.join(buildPath, "index.html"));
 });
 
