@@ -1,61 +1,115 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
-import HologramScene from '../scene/HologramScene'
-import { useAppStore } from '../store'
-import axios from 'axios'
+import React, { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
+import HologramScene from "../scene/HologramScene";
+import QRCode from "react-qr-code";
+import axios from "axios";
+
+const QR_URL = "https://kardiverse-r3f.onrender.com/";
 
 export default function Entry() {
-  const addActivation = useAppStore(s => s.addActivation)
+  const [scanCount, setScanCount] = useState(0);
+  const [isActive, setIsActive] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const [autoActivateAllowed, setAutoActivateAllowed] = useState(false);
+  const prevScanCount = useRef(0);
+  const isFirstLoad = useRef(true);
 
-  const activate = async () => {
-    try {
-      // 1. Log the activation
-      addActivation()
-      axios.post('/api/log', { type: 'activation', ts: Date.now() }).catch(() => { })
-
-      // 2. Fetch TTS audio from server (POST JSON body instead of GET)
-      const res = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: "Hello, welcome to the gates of display from Kardiverse"
-        })
-      })
-
-      if (!res.ok) throw new Error("TTS request failed")
-
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-
-      // 3. Play the audio & trigger lipsync
-      const audio = document.getElementById('kardi-voice') as HTMLAudioElement
-      if (audio) {
-        audio.src = url
-        audio.currentTime = 0
-        await audio.play().catch(() => { })
-      }
-
-      // 4. Broadcast to hologram scene (for lipsync animation)
-      const bc = new BroadcastChannel('kardi-cue')
-      bc.postMessage('cue')
-    } catch (err) {
-      console.error("Activation failed:", err)
+  // Fetch scan count from server
+  useEffect(() => {
+    async function fetchCount() {
+      try {
+        const res = await fetch("/api/log?type=scan");
+        const data = await res.json();
+        setScanCount(data.count || 0);
+      } catch {}
     }
-  }
+    fetchCount();
+    const interval = setInterval(fetchCount, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Log scan event on page load
+  useEffect(() => {
+    axios.post("/api/log", { type: "scan", ts: Date.now() }).catch(() => {});
+  }, []);
+
+  // Activate hologram (avatar animation + voice)
+  const activate = () => {
+    setIsActive(true);
+    setHasInteracted(true);
+    setAutoActivateAllowed(true); // Allow auto-activation after first interaction
+    const audio = document.getElementById("kardi-voice") as HTMLAudioElement;
+    if (audio) {
+      audio.currentTime = 0;
+      audio.play();
+    }
+    setTimeout(() => setIsActive(false), 30000); // 30 seconds
+  };
+
+  // Detect QR scan (scanCount increases), but skip on first load
+  useEffect(() => {
+    if (isFirstLoad.current) {
+      prevScanCount.current = scanCount;
+      isFirstLoad.current = false;
+      return;
+    }
+    if (
+      scanCount > prevScanCount.current && // scanCount increased
+      !hasInteracted // only if user hasn't interacted yet
+    ) {
+      activate();
+    }
+    prevScanCount.current = scanCount;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanCount]);
 
   return (
-    <div className='app-stage'>
-      <div className='canvas-wrapper'>
-        <HologramScene entryMode />
+    <div className="app-stage" style={{ position: "relative" }}>
+      <div className="main-row">
+        {/* Left: Logo, QR code, buttons */}
+        <div className="left-col">
+          <div className="logo-glow">Gates of display</div>
+          <div className="qr-controls-section">
+            <div className="qr-section">
+              <div className="qr-label">Scan to enter the gates</div>
+              <QRCode
+                value={QR_URL}
+                size={128}
+                fgColor="#39e6ff"
+                bgColor="transparent"
+                style={{ boxShadow: "0 0 16px #39e6ff88", borderRadius: 8 }}
+              />
+              <div className="qr-count">Devices scanned: {scanCount}</div>
+            </div>
+            <div className="controls">
+              <button className="button" onClick={activate}>
+                Activate Hologram
+              </button>
+              <Link to="/projector">
+                <button className="button">Open Projector</button>
+              </Link>
+              <Link to="/remote">
+                <button className="button">Remote</button>
+              </Link>
+            </div>
+          </div>
+        </div>
+        {/* Right: Title and avatar */}
+        <div className="right-col">
+          <div className="kardiverse-title">Kardiverse</div>
+          <div className="avatar-area">
+            <div className="avatar-glow"></div>
+            <div className="canvas-wrapper">
+              <HologramScene entryMode avatarScale={1.8} isActive={isActive} />
+            </div>
+          </div>
+        </div>
       </div>
-      <div className='controls'>
-        <button className='button' onClick={activate}>Activate Hologram</button>
-        <Link to='/projector'><button className='button'>Open Projector</button></Link>
-        <Link to='/remote'><button className='button'>Remote</button></Link>
-      </div>
-
-      {/* 🔊 Hidden audio element for lipsync (no controls shown) */}
-      <audio id='kardi-voice' style={{ display: 'none' }} />
+      <audio
+        id="kardi-voice"
+        src="/assets/welcome.mp3"
+        style={{ display: "none" }}
+      />
     </div>
-  )
+  );
 }

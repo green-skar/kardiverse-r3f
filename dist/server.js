@@ -39,41 +39,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const path_1 = __importDefault(require("path"));
 const dotenv = __importStar(require("dotenv"));
-const openai_1 = __importDefault(require("openai"));
 // Load environment variables
 dotenv.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 8080;
-// Initialize OpenAI client
-const openai = new openai_1.default({
-    apiKey: process.env.OPENAI_API_KEY || process.env.AI_TTS_API_KEY,
-});
 // Middleware
 app.use(express_1.default.json());
 // Serve React build
 const buildPath = __dirname;
 app.use(express_1.default.static(buildPath));
-// 🔊 OpenAI TTS endpoint
-app.get("/api/tts", async (req, res) => {
-    const text = req.query.text || "Hello from Kardiverse";
-    try {
-        if (!process.env.OPENAI_API_KEY) {
-            return res.status(500).send("Missing OPENAI_API_KEY");
-        }
-        const response = await openai.audio.speech.create({
-            model: "gpt-4o-mini-tts",
-            voice: "verse",
-            input: text,
-        });
-        const buffer = Buffer.from(await response.arrayBuffer());
-        res.set("Content-Type", "audio/mpeg");
-        res.send(buffer);
-    }
-    catch (err) {
-        console.error("TTS error:", err);
-        res.status(500).send("TTS API failed");
-    }
-});
 // Fallback: React Router
 app.get(/^(?!\/api).*/, (req, res) => {
     res.sendFile(path_1.default.join(buildPath, "index.html"));

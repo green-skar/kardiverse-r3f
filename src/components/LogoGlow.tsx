@@ -13,7 +13,7 @@ export default function LogoGlow() {
             bevelThickness={0.05}
             bevelSegments={5}
         >
-            Kardiverse
+            {/* Kardiverse */}
             {/* Material with glow effect */}
             <meshStandardMaterial
                 attach="material"
