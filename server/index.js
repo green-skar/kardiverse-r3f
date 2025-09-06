@@ -11,11 +11,9 @@ app.use(express.json({ limit: "1mb" }));
 
 let scanCount = 0;
 
+// --- API ROUTES FIRST ---
 app.post("/api/log", (req, res) => {
-  if (req.body.type === "scan") {
-    scanCount++;
-  }
-  console.log("LOG", req.body);
+  if (req.body.type === "scan") scanCount++;
   res.json({ ok: true });
 });
 
@@ -27,13 +25,13 @@ app.get("/api/log", (req, res) => {
   }
 });
 
-// Serve static files from the React app
+// --- THEN STATIC FILES ---
 app.use(express.static(path.join(__dirname, "../dist")));
 
-// Catch-all: send back React's index.html for any other request
+// --- THEN CATCH-ALL FOR REACT ROUTER ---
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../dist/index.html"));
 });
 
-const port = process.env.PORT || 8787;
-app.listen(port, () => console.log("API listening on", port));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
