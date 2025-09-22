@@ -6,6 +6,7 @@
     "dev": "vite",
     "dev:full": "start-dev.bat",
     "build": "vite build",
+    "build:render": "node build-with-redirects.js",
     "build:server": "vite build && tsc -p tsconfig.server.json",
     "preview": "vite preview --port 8080",
     "start": "node dist/server.js",

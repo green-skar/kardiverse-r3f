@@ -1,1 +1,8 @@
-/*    /index.html   200
+# SPA routing for all paths
+/* /index.html 200
+
+# Fallback for common routes
+/projector /index.html 200
+/qr-scan /index.html 200
+/video-export /index.html 200
+/mobile /index.html 200
