@@ -993,9 +993,12 @@ export default function QRScan() {
 
   const responsiveSizing = getResponsiveSizing();
 
-  // Show activate button immediately on page load
+  // Show activate button only for QR code access or direct URL access
   useEffect(() => {
-    setShowActivateButton(true);
+    const isQRCodeAccess = checkIfQRCodeAccess();
+    if (isQRCodeAccess) {
+      setShowActivateButton(true);
+    }
   }, []);
 
   // Initial cycle for QR code users - show mascots and speech after scan detection

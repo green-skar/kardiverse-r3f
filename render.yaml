@@ -2,7 +2,7 @@ services:
   - type: web
     name: kardiverse-backend
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python migrate.py
     startCommand: gunicorn kardiverse_backend.wsgi:application
     envVars:
       - key: DEBUG
