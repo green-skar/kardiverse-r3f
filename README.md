@@ -232,30 +232,47 @@ The Kardiverse project now features **automatic platform detection** that works 
 
 ---
 
-### 🚀 **Quick Deploy Guides**
+### 🚀 **Production Deployment Guides**
 
 #### **1. Render.com Deployment (Recommended)**
 
-**Frontend:**
+**Frontend Service:**
 ```bash
 # 1. Connect your GitHub repository to Render
-# 2. Create a new Web Service
+# 2. Create a new Static Site
 # 3. Use these settings:
-Build Command: npm install && npm run build
+Name: kardiverse-frontend
+Build Command: npm install && npm run build:render
 Publish Directory: dist
 Environment: Node
 ```
 
-**Backend:**
+**Backend Service:**
 ```bash
 # 1. Create a new Web Service for Django
 # 2. Use these settings:
-Build Command: pip install -r requirements.txt && python manage.py migrate
+Name: kardiverse-backend
+Build Command: pip install -r requirements.txt && python migrate.py
 Start Command: gunicorn kardiverse_backend.wsgi:application
 Environment: Python
+Instance Type: Free (or upgrade for better performance)
 ```
 
-**✅ No environment variables needed!** The app will auto-detect Render URLs.
+**Environment Variables (Backend):**
+```
+DEBUG=False
+SECRET_KEY=your-secret-key-here-make-it-long-and-random
+ALLOWED_HOSTS=kardiverse-backend.onrender.com,localhost,127.0.0.1
+CORS_ALLOWED_ORIGINS=https://kardiverse-frontend-83up.onrender.com,http://localhost:3000,http://localhost:5173
+```
+
+**Environment Variables (Frontend):**
+```
+VITE_API_URL=https://kardiverse-backend.onrender.com
+VITE_QR_URL=https://kardiverse-frontend-83up.onrender.com/qr-scan
+```
+
+**✅ Critical: The `migrate.py` script ensures database tables are created for scan count functionality!**
 
 ---
 
@@ -269,7 +286,9 @@ npm i -g vercel
 # 2. Deploy from project root
 vercel
 
-# 3. Follow prompts (no special config needed)
+# 3. Set environment variables in Vercel dashboard:
+VITE_API_URL=https://your-backend.vercel.app
+VITE_QR_URL=https://your-frontend.vercel.app/qr-scan
 ```
 
 **Backend:**
@@ -291,8 +310,23 @@ vercel
   ]
 }
 
-# 2. Deploy backend
+# 2. Create requirements.txt in django_backend/
+Django==5.0.1
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
+python-decouple==3.8
+gunicorn==21.2.0
+whitenoise==6.6.0
+requests==2.31.0
+
+# 3. Deploy backend
 cd django_backend && vercel
+
+# 4. Set environment variables in Vercel dashboard:
+DEBUG=False
+SECRET_KEY=your-secret-key-here
+ALLOWED_HOSTS=your-backend.vercel.app,localhost,127.0.0.1
+CORS_ALLOWED_ORIGINS=https://your-frontend.vercel.app,http://localhost:3000,http://localhost:5173
 ```
 
 **✅ Auto-detects Vercel URLs automatically!**
@@ -305,20 +339,26 @@ cd django_backend && vercel
 ```bash
 # 1. Connect GitHub repository to Netlify
 # 2. Set build settings:
-Build Command: npm run build
+Build Command: npm install && npm run build:render
 Publish Directory: dist
+
+# 3. Set environment variables in Netlify dashboard:
+VITE_API_URL=https://your-backend.netlify.app
+VITE_QR_URL=https://your-frontend.netlify.app/qr-scan
 ```
 
-**Backend:**
+**Backend (Netlify Functions):**
 ```bash
-# 1. Use Netlify Functions for Django
-# 2. Create netlify.toml in django_backend/
+# 1. Create netlify.toml in root directory:
 [build]
-  command = "pip install -r requirements.txt"
-  functions = "netlify/functions"
+  command = "npm run build:render"
+  publish = "dist"
 
 [build.environment]
-  PYTHON_VERSION = "3.9"
+  NODE_VERSION = "18"
+
+# 2. For Django backend, use separate service (Railway, Render, etc.)
+# Netlify Functions are better suited for serverless functions
 ```
 
 **✅ Auto-detects Netlify URLs automatically!**
@@ -329,19 +369,29 @@ Publish Directory: dist
 
 **Frontend:**
 ```bash
-# 1. Create Procfile in root
-web: npm run build && npx serve -s dist
+# 1. Create Procfile in root:
+web: npm run build:render && npx serve -s dist
 
-# 2. Deploy
+# 2. Set environment variables:
+heroku config:set VITE_API_URL=https://your-backend.herokuapp.com
+heroku config:set VITE_QR_URL=https://your-frontend.herokuapp.com/qr-scan
+
+# 3. Deploy
 git push heroku main
 ```
 
 **Backend:**
 ```bash
-# 1. Create Procfile in django_backend/
-web: gunicorn kardiverse_backend.wsgi:application
+# 1. Create Procfile in django_backend/:
+web: python migrate.py && gunicorn kardiverse_backend.wsgi:application
 
-# 2. Deploy
+# 2. Set environment variables:
+heroku config:set DEBUG=False
+heroku config:set SECRET_KEY=your-secret-key-here
+heroku config:set ALLOWED_HOSTS=your-backend.herokuapp.com,localhost,127.0.0.1
+heroku config:set CORS_ALLOWED_ORIGINS=https://your-frontend.herokuapp.com,http://localhost:3000,http://localhost:5173
+
+# 3. Deploy
 cd django_backend && git push heroku main
 ```
 
@@ -351,12 +401,244 @@ cd django_backend && git push heroku main
 
 #### **5. Custom Domain Deployment**
 
-**For custom domains (e.g., kardiverse.com):**
+**Frontend (Custom Domain):**
+```bash
+# 1. Deploy to any platform (Render, Vercel, Netlify, etc.)
+# 2. Set custom domain in platform dashboard
+# 3. Update environment variables:
+VITE_API_URL=https://api.yourdomain.com
+VITE_QR_URL=https://yourdomain.com/qr-scan
+```
 
-1. **Frontend:** Deploy to your preferred platform
-2. **Backend:** Deploy to your preferred platform  
-3. **DNS:** Point your domain to the deployment URLs
-4. **✅ Auto-detection works!** The app will detect custom domains and construct appropriate URLs.
+**Backend (Custom Domain):**
+```bash
+# 1. Deploy Django backend to any platform
+# 2. Set custom domain (e.g., api.yourdomain.com)
+# 3. Update environment variables:
+DEBUG=False
+SECRET_KEY=your-secret-key-here
+ALLOWED_HOSTS=api.yourdomain.com,yourdomain.com,localhost,127.0.0.1
+CORS_ALLOWED_ORIGINS=https://yourdomain.com,http://localhost:3000,http://localhost:5173
+```
+
+**✅ Auto-detects custom domains automatically!**
+
+---
+
+## 🎬 **Video Processing Optimization**
+
+### **Local Video Processing Features**
+
+The Kardiverse project uses **local video processing** for optimal performance across all deployment platforms:
+
+#### **✅ Supported Platforms:**
+- **Local Development**: Full video processing capabilities
+- **Render.com**: Optimized for free tier limitations
+- **Vercel**: Serverless-compatible processing
+- **Netlify**: Static site with client-side processing
+- **Heroku**: Full processing with dyno limitations
+- **Custom Domains**: Platform-agnostic processing
+
+#### **🔧 Video Processing Components:**
+
+**1. Local Video Processor (`src/utils/localVideoProcessor.ts`):**
+```typescript
+// Browser-native video processing using:
+// - MediaRecorder API for recording
+// - Canvas API for visual effects
+// - Web Audio API for audio processing
+// - Blob API for file handling
+```
+
+**2. Video Export Features:**
+- ✅ **Real-time Processing**: No server uploads required
+- ✅ **Visual Effects**: Holographic overlays and animations
+- ✅ **Audio Integration**: Background music and sound effects
+- ✅ **Multiple Formats**: MP4, WebM support
+- ✅ **Quality Control**: Adjustable resolution and bitrate
+- ✅ **Progress Tracking**: Real-time processing feedback
+
+**3. Cross-Platform Compatibility:**
+```typescript
+// Automatic platform detection for video processing
+const isSupported = 'MediaRecorder' in window && 'Canvas' in window;
+if (isSupported) {
+  // Use local processing
+} else {
+  // Fallback to basic export
+}
+```
+
+#### **📱 Mobile Optimization:**
+- ✅ **Touch-friendly Interface**: Optimized for mobile devices
+- ✅ **Reduced Processing**: Lower quality for mobile performance
+- ✅ **Progressive Enhancement**: Graceful degradation on older devices
+- ✅ **Memory Management**: Efficient resource usage
+
+#### **🌐 Production Deployment:**
+- ✅ **No External Dependencies**: Works offline after initial load
+- ✅ **CDN Compatible**: Static assets served from CDN
+- ✅ **CORS Free**: No cross-origin issues
+- ✅ **Scalable**: Handles multiple concurrent users
+
+---
+
+## 🛠️ **Deployment Troubleshooting**
+
+### **Common Issues & Solutions**
+
+#### **1. Database Migration Issues**
+```bash
+# Error: "no such table: api_scancount"
+# Solution: Ensure migrate.py is included in build command
+
+# For Render:
+Build Command: pip install -r requirements.txt && python migrate.py
+
+# For Heroku:
+Procfile: web: python migrate.py && gunicorn kardiverse_backend.wsgi:application
+```
+
+#### **2. CORS Issues**
+```bash
+# Error: CORS policy blocks requests
+# Solution: Update CORS_ALLOWED_ORIGINS environment variable
+
+# Include your frontend URL:
+CORS_ALLOWED_ORIGINS=https://your-frontend.onrender.com,http://localhost:3000,http://localhost:5173
+```
+
+#### **3. SPA Routing Issues**
+```bash
+# Error: 404 on direct URL access
+# Solution: Use build:render command for proper SPA support
+
+# Frontend Build Command:
+npm install && npm run build:render
+```
+
+#### **4. Video Processing Issues**
+```bash
+# Error: Video export not working
+# Solution: Check browser compatibility
+
+# Supported browsers:
+# - Chrome 47+
+# - Firefox 25+
+# - Safari 14+
+# - Edge 79+
+```
+
+#### **5. Environment Variable Issues**
+```bash
+# Error: API calls failing
+# Solution: Verify environment variables are set correctly
+
+# Required variables:
+# Frontend: VITE_API_URL, VITE_QR_URL
+# Backend: DEBUG, SECRET_KEY, ALLOWED_HOSTS, CORS_ALLOWED_ORIGINS
+```
+
+### **🔍 Debugging Steps**
+
+#### **1. Check Build Logs**
+```bash
+# Render: Go to service → Logs tab
+# Vercel: Go to deployment → Functions tab
+# Netlify: Go to site → Deploys → View details
+# Heroku: heroku logs --tail
+```
+
+#### **2. Verify Environment Variables**
+```bash
+# Check if variables are set correctly in platform dashboard
+# Ensure no typos in variable names
+# Verify URLs are accessible
+```
+
+#### **3. Test API Endpoints**
+```bash
+# Test backend health:
+curl https://your-backend.onrender.com/api/scan-count/
+
+# Expected response:
+{"count": 0}
+```
+
+#### **4. Check Browser Console**
+```bash
+# Look for:
+# - CORS errors
+# - 404 errors
+# - Network failures
+# - JavaScript errors
+```
+
+---
+
+## 📋 **Deployment Checklist**
+
+### **✅ Pre-Deployment Checklist**
+
+#### **Frontend:**
+- [ ] **Build Command**: Use `npm run build:render` for SPA support
+- [ ] **Environment Variables**: Set `VITE_API_URL` and `VITE_QR_URL`
+- [ ] **Publish Directory**: Set to `dist`
+- [ ] **Node Version**: Use Node 18+ for compatibility
+
+#### **Backend:**
+- [ ] **Build Command**: Include `python migrate.py` for database setup
+- [ ] **Environment Variables**: Set `DEBUG=False`, `SECRET_KEY`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`
+- [ ] **Start Command**: Use `gunicorn kardiverse_backend.wsgi:application`
+- [ ] **Python Version**: Use Python 3.9+ for compatibility
+
+#### **Database:**
+- [ ] **Migration Script**: Ensure `migrate.py` is included in build
+- [ ] **Initial Data**: Scan count table will be created automatically
+- [ ] **Backup Strategy**: Consider database backups for production
+
+### **✅ Post-Deployment Testing**
+
+#### **Functionality Tests:**
+- [ ] **QR Code Scanning**: Test scan count increment
+- [ ] **Direct URL Access**: Test all routes work with direct access
+- [ ] **Page Refresh**: Test that refreshes preserve current route
+- [ ] **Video Export**: Test local video processing
+- [ ] **Mobile Compatibility**: Test on mobile devices
+- [ ] **API Connectivity**: Test backend API endpoints
+
+#### **Performance Tests:**
+- [ ] **Load Time**: Check initial page load speed
+- [ ] **Video Processing**: Test video export performance
+- [ ] **Memory Usage**: Monitor memory consumption
+- [ ] **Concurrent Users**: Test with multiple users
+
+---
+
+## 🎯 **Quick Start Summary**
+
+### **For Render.com (Recommended):**
+
+1. **Create Frontend Service:**
+   - Type: Static Site
+   - Build Command: `npm install && npm run build:render`
+   - Publish Directory: `dist`
+
+2. **Create Backend Service:**
+   - Type: Web Service
+   - Build Command: `pip install -r requirements.txt && python migrate.py`
+   - Start Command: `gunicorn kardiverse_backend.wsgi:application`
+
+3. **Set Environment Variables:**
+   - Frontend: `VITE_API_URL`, `VITE_QR_URL`
+   - Backend: `DEBUG=False`, `SECRET_KEY`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`
+
+4. **Deploy and Test:**
+   - Deploy both services
+   - Test QR code scanning
+   - Test video export functionality
+
+**✅ That's it! Your Kardiverse application is now live and fully functional!**
 
 ---
 

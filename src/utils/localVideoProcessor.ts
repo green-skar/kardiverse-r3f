@@ -1,5 +1,6 @@
 // Local Video Processing System
 // Replaces Mux API with browser-native video processing capabilities
+// Optimized for multiple deployment platforms
 
 export interface VideoProcessingOptions {
   width: number;
@@ -7,6 +8,15 @@ export interface VideoProcessingOptions {
   frameRate: number;
   bitrate: number;
   format: 'beamer' | 'mobile';
+  platform?: 'render' | 'vercel' | 'netlify' | 'heroku' | 'custom' | 'localhost';
+}
+
+export interface PlatformOptimization {
+  maxWidth: number;
+  maxHeight: number;
+  maxBitrate: number;
+  maxFrameRate: number;
+  supportedFormats: string[];
 }
 
 export interface ProcessingProgress {
@@ -20,10 +30,129 @@ export class LocalVideoProcessor {
   private ctx: CanvasRenderingContext2D;
   private mediaRecorder: MediaRecorder | null = null;
   private recordedChunks: Blob[] = [];
+  private platformOptimizations: Map<string, PlatformOptimization> = new Map();
 
   constructor() {
     this.canvas = document.createElement('canvas');
     this.ctx = this.canvas.getContext('2d')!;
+    this.initializePlatformOptimizations();
+  }
+
+  /**
+   * Initialize platform-specific optimizations
+   */
+  private initializePlatformOptimizations(): void {
+    // Render.com optimizations (free tier limitations)
+    this.platformOptimizations.set('render', {
+      maxWidth: 1920,
+      maxHeight: 1080,
+      maxBitrate: 2000000, // 2 Mbps
+      maxFrameRate: 30,
+      supportedFormats: ['video/webm', 'video/mp4']
+    });
+
+    // Vercel optimizations (serverless)
+    this.platformOptimizations.set('vercel', {
+      maxWidth: 1920,
+      maxHeight: 1080,
+      maxBitrate: 3000000, // 3 Mbps
+      maxFrameRate: 30,
+      supportedFormats: ['video/webm', 'video/mp4']
+    });
+
+    // Netlify optimizations (static hosting)
+    this.platformOptimizations.set('netlify', {
+      maxWidth: 1920,
+      maxHeight: 1080,
+      maxBitrate: 2500000, // 2.5 Mbps
+      maxFrameRate: 30,
+      supportedFormats: ['video/webm', 'video/mp4']
+    });
+
+    // Heroku optimizations (dyno limitations)
+    this.platformOptimizations.set('heroku', {
+      maxWidth: 1920,
+      maxHeight: 1080,
+      maxBitrate: 2000000, // 2 Mbps
+      maxFrameRate: 30,
+      supportedFormats: ['video/webm', 'video/mp4']
+    });
+
+    // Localhost optimizations (full capabilities)
+    this.platformOptimizations.set('localhost', {
+      maxWidth: 3840,
+      maxHeight: 2160,
+      maxBitrate: 10000000, // 10 Mbps
+      maxFrameRate: 60,
+      supportedFormats: ['video/webm', 'video/mp4', 'video/ogg']
+    });
+
+    // Custom domain optimizations (assume good hosting)
+    this.platformOptimizations.set('custom', {
+      maxWidth: 2560,
+      maxHeight: 1440,
+      maxBitrate: 5000000, // 5 Mbps
+      maxFrameRate: 30,
+      supportedFormats: ['video/webm', 'video/mp4']
+    });
+  }
+
+  /**
+   * Detect current platform and get optimizations
+   */
+  private getPlatformOptimizations(): PlatformOptimization {
+    const hostname = window.location.hostname;
+    
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return this.platformOptimizations.get('localhost')!;
+    } else if (hostname.includes('render.com')) {
+      return this.platformOptimizations.get('render')!;
+    } else if (hostname.includes('vercel.app')) {
+      return this.platformOptimizations.get('vercel')!;
+    } else if (hostname.includes('netlify.app')) {
+      return this.platformOptimizations.get('netlify')!;
+    } else if (hostname.includes('herokuapp.com')) {
+      return this.platformOptimizations.get('heroku')!;
+    } else {
+      return this.platformOptimizations.get('custom')!;
+    }
+  }
+
+  /**
+   * Optimize video options based on platform capabilities
+   */
+  private optimizeVideoOptions(options: VideoProcessingOptions): VideoProcessingOptions {
+    const platformOpts = this.getPlatformOptimizations();
+    
+    return {
+      ...options,
+      width: Math.min(options.width, platformOpts.maxWidth),
+      height: Math.min(options.height, platformOpts.maxHeight),
+      bitrate: Math.min(options.bitrate, platformOpts.maxBitrate),
+      frameRate: Math.min(options.frameRate, platformOpts.maxFrameRate),
+      platform: this.detectPlatform()
+    };
+  }
+
+  /**
+   * Detect current platform
+   */
+  private detectPlatform(): VideoProcessingOptions['platform'] {
+    const hostname = window.location.hostname;
+    
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'localhost';
+    } else if (hostname.includes('render.com')) {
+      return 'render';
+    } else if (hostname.includes('vercel.app')) {
+      return 'vercel';
+    } else if (hostname.includes('netlify.app')) {
+      return 'netlify';
+    } else if (hostname.includes('herokuapp.com')) {
+      return 'heroku';
+    } else {
+      return 'custom';
+    }
   }
 
   /**
@@ -35,10 +164,13 @@ export class LocalVideoProcessor {
     onProgress?: (progress: ProcessingProgress) => void
   ): Promise<Blob> {
     try {
+      // Optimize options based on platform capabilities
+      const optimizedOptions = this.optimizeVideoOptions(options);
+      
       onProgress?.({
         stage: 'loading',
         progress: 10,
-        message: 'Loading video source...'
+        message: `Loading video source... (Platform: ${optimizedOptions.platform})`
       });
 
       // Load video element
@@ -47,20 +179,20 @@ export class LocalVideoProcessor {
       onProgress?.({
         stage: 'setup',
         progress: 20,
-        message: 'Setting up canvas and recording...'
+        message: `Setting up canvas and recording... (${optimizedOptions.width}x${optimizedOptions.height})`
       });
 
-      // Setup canvas with target dimensions
-      this.setupCanvas(options.width, options.height);
+      // Setup canvas with optimized dimensions
+      this.setupCanvas(optimizedOptions.width, optimizedOptions.height);
 
       onProgress?.({
         stage: 'processing',
         progress: 30,
-        message: 'Processing video frames...'
+        message: `Processing video frames... (${optimizedOptions.frameRate}fps, ${optimizedOptions.bitrate/1000}kbps)`
       });
 
-      // Process video using MediaRecorder
-      const processedBlob = await this.recordVideo(video, options, onProgress);
+      // Process video using MediaRecorder with optimized settings
+      const processedBlob = await this.recordVideo(video, optimizedOptions, onProgress);
 
       onProgress?.({
         stage: 'complete',
