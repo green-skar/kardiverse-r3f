@@ -616,6 +616,9 @@ export default function QRScan() {
           // Set QR access time for future reference
           sessionStorage.setItem('qr_access_time', Date.now().toString());
           
+          // Mark that user has accessed QRScan page (prevents reloads from counting as first access)
+          sessionStorage.setItem('has_accessed_qrscan', 'true');
+          
           // Play chime sound to signal successful scan detection
           playChime();
           console.log('QRScan: Chime played - scan detected successfully');
@@ -652,8 +655,10 @@ export default function QRScan() {
           console.log('QRScan: Scan logged, updated count:', updatedCount);
           
           setHasLoggedScan(true);
-          console.log('QRScan: Valid scan event logged (QR or new user)');
+          console.log('QRScan: Valid scan event logged (QR or direct access)');
         } else if (!isQRCodeAccess) {
+          // Still mark that user has accessed QRScan page (even if not logging scan)
+          sessionStorage.setItem('has_accessed_qrscan', 'true');
           console.log('QRScan: Page accessed via navigation/reload, not logging scan');
         }
       } catch (error) {
@@ -664,7 +669,7 @@ export default function QRScan() {
     fetchScanCountAndLog();
   }, [hasLoggedScan]);
 
-  // Helper function to check if this is a genuine QR code access or new user
+  // Helper function to check if this is a genuine QR code access or direct URL access
   const checkIfQRCodeAccess = () => {
     // Check URL parameters for QR code indicators
     const urlParams = new URLSearchParams(window.location.search);
@@ -675,34 +680,49 @@ export default function QRScan() {
     const qrAccessTime = sessionStorage.getItem('qr_access_time');
     const currentTime = Date.now();
     
-    // If QR access was within last 30 seconds, consider it genuine
-    const isRecentQRAccess = qrAccessTime && (currentTime - parseInt(qrAccessTime)) < 30000;
+    // Note: Removed 30-second grace period as it was causing refresh issues
+    // const isRecentQRAccess = qrAccessTime && (currentTime - parseInt(qrAccessTime)) < 30000;
+    
+    // Check if this is a page reload vs direct access
+    const navigationType = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+    const isPageReload = navigationType?.type === 'reload';
+    const isDirectAccess = navigationType?.type === 'navigate';
+    
+    // Check if user came from external source (direct URL access)
+    const referrer = document.referrer;
+    const isExternalAccess = !referrer || 
+      (!referrer.includes(window.location.hostname) && 
+       !referrer.includes('localhost') && 
+       !referrer.includes('127.0.0.1'));
     
     // Check if this is the first time accessing QRScan page in this session
     const hasAccessedQRScan = sessionStorage.getItem('has_accessed_qrscan');
     const isFirstAccess = !hasAccessedQRScan;
     
-    // Check if user has a scan session ID (indicates they've scanned before)
-    const hasScanSession = sessionStorage.getItem('scan_session_id');
-    const isNewUser = !hasScanSession;
-    
-    // Count as valid scan if:
+    // Count as valid scan ONLY if:
     // 1. URL has QR parameters (genuine QR scan)
-    // 2. Recent QR access (within 30 seconds)
-    // 3. First time accessing QRScan page (new user or direct link)
-    // 4. New user without scan session (direct link access)
-    const isValidScan = isQRParam || isFromQR || isRecentQRAccess || isFirstAccess || isNewUser;
+    // 2. Direct navigation with NO referrer (typing URL directly, bookmark, external link)
+    const isValidScan = isQRParam || 
+                       isFromQR || 
+                       (isDirectAccess && !referrer);
     
     console.log('QRScan: Detection check:', {
       isQRParam,
       isFromQR,
-      isRecentQRAccess,
+      isDirectAccess,
+      isExternalAccess,
       isFirstAccess,
-      isNewUser,
-      hasScanSession: !!hasScanSession,
+      isPageReload,
+      referrer: referrer || 'none',
+      navigationType: navigationType?.type,
       hasAccessedQRScan: !!hasAccessedQRScan,
       isValidScan,
-      url: window.location.href
+      url: window.location.href,
+      logic: {
+        condition1: isQRParam,
+        condition2: isFromQR,
+        condition3: isDirectAccess && !referrer
+      }
     });
     
     return isValidScan;
@@ -973,6 +993,11 @@ export default function QRScan() {
 
   const responsiveSizing = getResponsiveSizing();
 
+  // Show activate button immediately on page load
+  useEffect(() => {
+    setShowActivateButton(true);
+  }, []);
+
   // Initial cycle for QR code users - show mascots and speech after scan detection
   useEffect(() => {
     // Only show mascots and start speech if this is a valid scan
@@ -991,18 +1016,14 @@ export default function QRScan() {
         }, 1000); // 1 second delay after mascots appear
       }, 1000); // 1 second delay after chime (chime plays when scan is detected)
       
-      // Show activate button after 30 seconds and stop rotation
+      // Stop rotation after 30 seconds (button is already visible)
       const timer = setTimeout(() => {
-        setShowActivateButton(true);
         setIsAxisRotating(false); // Stop the mobile rotation
         setAxisRotationSpeed(0); // Reset mobile rotation speed
         setIsDesktopRotating(false); // Stop the desktop rotation
       }, 30000);
 
       return () => clearTimeout(timer);
-    } else {
-      // For reloads/navigation/direct links - show activate button immediately
-      setShowActivateButton(true);
     }
   }, []);
 

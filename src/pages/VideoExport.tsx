@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import VideoExporter from '../components/VideoExporter';
+import LocalVideoExporter from '../components/LocalVideoExporter';
 import { useAppStore } from '../store';
 import { detectDevice } from '../utils/deviceDetection';
 import api from '../config/api';
@@ -88,10 +88,10 @@ export default function VideoExport() {
       <div className="video-export-page">
         <div className="page-header">
           <h1>🎬 Kardiverse Video Export</h1>
-          <p>Create processed Kardiverse videos using Mux API or local processing for beamer projection and mobile devices</p>
+          <p>Create processed Kardiverse videos using local processing for beamer projection and mobile devices - no internet required!</p>
         </div>
 
-        <VideoExporter 
+        <LocalVideoExporter 
           onExportComplete={handleExportComplete}
         />
 

@@ -1,16 +1,29 @@
-// Environment Configuration
+import { getCurrentPortInfo, getQRCodeURL, getAPIBaseURL, getServiceURLs, detectPlatform, detectEnvironment, isUnifiedIntegration } from '../utils/portDetection';
+
+// Environment Configuration - Phase 2: Auto-Detection Approach with Unified Integration Support
 export const ENV = {
-  // API URL - defaults to Django backend running on Render
-  API_URL: (import.meta as any).env?.VITE_API_URL || 'https://kardiverse-backend.onrender.com',
+  // Service URLs with auto-detection and unified integration support
+  API_URL: getAPIBaseURL(),
+  QR_URL: getQRCodeURL(),
   
-  // QR Code URL - update this to your deployed frontend URL
-  QR_URL: (import.meta as any).env?.VITE_QR_URL || 'https://kardiverse-frontend.onrender.com/qr-scan',
+  // Current frontend information
+  CURRENT_PORT: getCurrentPortInfo().currentPort,
+  CURRENT_ORIGIN: getCurrentPortInfo().currentOrigin,
   
-  // Development mode
-  IS_DEV: (import.meta as any).env?.DEV,
+  // Platform and environment detection
+  PLATFORM: detectPlatform(),
+  ENVIRONMENT: detectEnvironment(),
   
-  // Production mode
-  IS_PROD: (import.meta as any).env?.PROD,
+  // Integration type detection
+  IS_UNIFIED: isUnifiedIntegration(),
+  
+  // Legacy compatibility flags
+  IS_OFFLINE: !navigator.onLine || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
+  IS_DEV: getCurrentPortInfo().isDevelopment,
+  IS_PROD: (import.meta as any).env?.PROD && !getCurrentPortInfo().isLocalhost,
+  
+  // Complete service URLs object
+  SERVICES: getServiceURLs(),
 };
 
 export default ENV;

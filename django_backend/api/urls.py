@@ -15,7 +15,6 @@ urlpatterns = [
     path('avatar-action/', views.trigger_avatar_action, name='avatar_action'),
     path('avatar-actions/', views.get_avatar_actions, name='avatar_actions'),
     
-    # Mux API proxy endpoints
-    path('mux/assets/', views.create_mux_asset, name='create_mux_asset'),
-    path('mux/assets/<str:asset_id>/', views.get_mux_asset, name='get_mux_asset'),
+    # Mux API proxy endpoints - REMOVED FOR OFFLINE MODE
+    # All video processing now handled locally in the frontend
 ]

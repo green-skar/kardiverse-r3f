@@ -87,8 +87,12 @@ export default function ScanTrigger({
     setScanType(type);
     setLastScanTime(new Date());
     
-    // Log the scan
-    logScan(type, metadata);
+    // Only log actual scans (QR/NFC), NOT manual activations
+    if (type !== 'manual') {
+      logScan(type, metadata);
+    } else {
+      if (debugMode) console.log('Manual activation - NOT logging as scan');
+    }
     
     // Trigger activation
     onActivation();
@@ -317,6 +321,7 @@ export function useScanTrigger(onActivation: () => void, options?: Partial<ScanT
       scanType: 'manual',
       lastScanTime: new Date()
     }));
+    // Manual activation should NOT log as a scan - just trigger the activation
     onActivation();
   };
 

@@ -9,6 +9,8 @@ export default defineConfig({
     chunkSizeWarningLimit: 1600, 
   },
   server: {
+    port: 5173, // Default port
+    strictPort: false, // Allow Vite to find next available port if 5173 is busy
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8000',

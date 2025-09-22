@@ -62,9 +62,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'kardiverse_backend.wsgi.application'
 
-# Database
-# Use SQLite for development (no setup required)
-# For production, uncomment the PostgreSQL configuration below
+# Database - SQLite Only for Offline Mode
+# Force SQLite for all environments to ensure offline operation
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -72,17 +71,8 @@ DATABASES = {
     }
 }
 
-# PostgreSQL configuration for production (uncomment when ready)
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': config('DB_NAME', default='kardiverse'),
-#         'USER': config('DB_USER', default='postgres'),
-#         'PASSWORD': config('DB_PASSWORD', default=''),
-#         'HOST': config('DB_HOST', default='localhost'),
-#         'PORT': config('DB_PORT', default='5432'),
-#     }
-# }
+# PostgreSQL configuration removed for offline mode
+# All database operations use local SQLite file
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -130,14 +120,14 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20
 }
 
-# CORS settings
+# CORS settings - Phase 2: Auto-Detection Approach
 # Get CORS origins from environment or use defaults
 if DEBUG:
-    # Development: Allow localhost origins
-    cors_origins_default = 'http://localhost:3000,http://localhost:5173'
+    # Development: Allow localhost origins with dynamic port support
+    cors_origins_default = 'http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:5177,http://localhost:5178,http://localhost:5179,http://localhost:5180'
 else:
-    # Production: Only allow production frontend
-    cors_origins_default = 'https://kardiverse-frontend.onrender.com'
+    # Production: Auto-detect common deployment platforms
+    cors_origins_default = 'https://kardiverse-frontend.onrender.com,https://kardiverse-r3f.onrender.com,https://kardiverse-frontend.vercel.app,https://kardiverse-r3f.vercel.app,https://kardiverse-frontend.netlify.app,https://kardiverse-r3f.netlify.app,https://kardiverse-frontend.herokuapp.com,https://kardiverse-r3f.herokuapp.com'
 
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default=cors_origins_default).split(',')
 
@@ -145,6 +135,52 @@ CORS_ALLOW_CREDENTIALS = True
 
 # Additional CORS settings for production
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only allow all origins in development
+
+# Enhanced CORS origin function with platform auto-detection
+def cors_allow_origin(origin, request):
+    """Enhanced CORS origin function with platform auto-detection and unified integration support"""
+    if not origin:
+        return False
+    
+    # For unified integration, allow same-origin requests
+    if origin == request.META.get('HTTP_ORIGIN'):
+        return True
+    
+    # Development: Allow any localhost origin
+    if DEBUG and origin.startswith('http://localhost:'):
+        return True
+    
+    # Production: Auto-detect platform patterns
+    if not DEBUG:
+        # Render.com patterns
+        if origin.startswith('https://') and 'render.com' in origin:
+            return True
+        
+        # Vercel patterns
+        if origin.startswith('https://') and 'vercel.app' in origin:
+            return True
+        
+        # Netlify patterns
+        if origin.startswith('https://') and 'netlify.app' in origin:
+            return True
+        
+        # Heroku patterns
+        if origin.startswith('https://') and 'herokuapp.com' in origin:
+            return True
+        
+        # Custom domain patterns (unified integration)
+        if origin.startswith('https://') and ('kardiverse.com' in origin or 'yourdomain.com' in origin or 'yourapp.com' in origin):
+            return True
+        
+        # Subdomains for unified integration
+        if origin.startswith('https://') and any(domain in origin for domain in ['yourdomain.com', 'yourapp.com']):
+            return True
+    
+    # Fallback to explicit list
+    return origin in CORS_ALLOWED_ORIGINS
+
+# Set the custom origin function
+CORS_ALLOW_ORIGIN_FUNC = cors_allow_origin
 
 # Ensure production frontend is always allowed (even if not in env var)
 if not DEBUG:

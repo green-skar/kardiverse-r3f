@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { api } from '../config/api';
+import { localVideoProcessor, VideoProcessingOptions, ProcessingProgress } from '../utils/localVideoProcessor';
 
 interface VideoExporterProps {
   onExportComplete?: (blob: Blob) => void;
@@ -35,13 +36,11 @@ export default function VideoExporter({ onExportComplete, onProgress }: VideoExp
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Mux API configuration
-  const MUX_TOKEN_ID = (import.meta as any).env?.VITE_MUX_TOKEN_ID || 'demo_token_id';
-  const MUX_TOKEN_SECRET = (import.meta as any).env?.VITE_MUX_TOKEN_SECRET || 'demo_token_secret';
-  const MUX_API_URL = 'https://api.mux.com';
+  // Local video processing configuration
+  const USE_LOCAL_PROCESSING = true; // Always use local processing for offline mode
 
-  // Mux video processing function using backend proxy
-  const processVideoWithMuxAPI = async (videoSrc: string, type: 'beamer' | 'mobile'): Promise<Blob> => {
+  // Local video processing function
+  const processVideoLocally = async (videoSrc: string, type: 'beamer' | 'mobile'): Promise<Blob> => {
     try {
       // Check if the video URL is accessible from external services
       if (videoSrc.includes('localhost') || videoSrc.includes('127.0.0.1')) {
