@@ -1,0 +1,4 @@
+NFC NDEF URL payload (write this as an URL record):
+https://your-public-url.example.com/
+
+Use an NFC writer app and write this URL as an NDEF record to the mascot tag.

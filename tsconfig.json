@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2019",
+    "lib": [
+      "DOM",
+      "ES2020"
+    ],
+    "types": [
+      "@react-three/fiber",
+      "@types/three",
+      "node"
+    ],
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "src"
+  ]
+}
