@@ -8,6 +8,7 @@ import Projector from './pages/Projector'
 import Mobile from './pages/Mobile'
 import VideoExport from './pages/VideoExport'
 import QRScan from './pages/QRScan'
+import ProjectorScenePage from './scene/projectorScene'
 import ErrorBoundary from './components/ErrorBoundary'
 import ModelPreloader from './components/ModelPreloader'
 import './styles.css'
@@ -53,6 +54,7 @@ function App(){
         <Routes>
           <Route path='/' element={<Entry/>}/>
           <Route path='/projector' element={<Projector/>}/>
+          <Route path='/projector-scene' element={<ProjectorScenePage/>}/>
           <Route path='/mobile' element={<Mobile/>}/>
           <Route path='/video-export' element={<VideoExport/>}/>
           <Route path='/qr-scan' element={<QRScan/>}/>

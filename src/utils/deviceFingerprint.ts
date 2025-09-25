@@ -239,41 +239,9 @@ export class DeviceFingerprintGenerator {
   }
 
   private async generateAudioFingerprint(): Promise<string> {
-    try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const analyser = audioContext.createAnalyser();
-      const gainNode = audioContext.createGain();
-      const scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
-
-      oscillator.type = 'triangle';
-      oscillator.frequency.setValueAtTime(10000, audioContext.currentTime);
-      
-      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-      
-      oscillator.connect(analyser);
-      analyser.connect(scriptProcessor);
-      scriptProcessor.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.start(0);
-      
-      return new Promise((resolve) => {
-        scriptProcessor.onaudioprocess = (event) => {
-          const samples = event.inputBuffer.getChannelData(0);
-          let fingerprint = '';
-          for (let i = 0; i < samples.length; i++) {
-            fingerprint += Math.abs(samples[i]).toString(36).substr(0, 1);
-          }
-          oscillator.stop();
-          audioContext.close();
-          resolve(fingerprint.substr(0, 50));
-        };
-      });
-    } catch (error) {
-      console.warn('Audio fingerprinting failed:', error);
-      return 'audio_error';
-    }
+    // Disabled to avoid deprecation warnings and reduce CPU usage.
+    // Keep a stable placeholder so overall fingerprint remains consistent.
+    return 'audio_disabled';
   }
 
   private async detectFonts(): Promise<string[]> {

@@ -10,7 +10,7 @@
     "build:server": "vite build && tsc -p tsconfig.server.json",
     "preview": "vite preview --port 8080",
     "start": "node dist/server.js",
-    "backend": "cd django_backend && venv\\Scripts\\python manage.py runserver",
+    "backend": "cd django_backend && venv\\Scripts\\python manage.py runserver 0.0.0.0:8000",
     "backend:setup": "cd django_backend && setup.bat"
   },
   "dependencies": {

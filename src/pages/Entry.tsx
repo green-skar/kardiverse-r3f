@@ -11,6 +11,7 @@ import { enhancedModelCache } from "../utils/modelCache";
 
 export default function Entry() {
   const [scanCount, setScanCount] = useState(0);
+  const [deviceCount, setDeviceCount] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [autoActivateAllowed, setAutoActivateAllowed] = useState(false);
@@ -24,24 +25,28 @@ export default function Entry() {
   const isFirstLoad = useRef(true);
   const navigate = useNavigate();
 
-  // Fetch scan count from server
+  // Fetch scan count and device count from server
   useEffect(() => {
-    const fetchScanCount = async () => {
+    const fetchCounts = async () => {
       try {
-        const count = await api.getScanCount();
-        setScanCount(count);
-        console.log('Scan count updated:', count);
+        const [scanCountData, deviceCountData] = await Promise.all([
+          api.getScanCount(),
+          api.getDeviceCount()
+        ]);
+        setScanCount(scanCountData);
+        setDeviceCount(deviceCountData);
+        console.log('Counts updated - Scan:', scanCountData, 'Devices:', deviceCountData);
       } catch (error) {
-        console.warn('Failed to fetch scan count:', error);
-        // Keep the current count if API fails
+        console.warn('Failed to fetch counts:', error);
+        // Keep the current counts if API fails
       }
     };
 
     // Fetch immediately
-    fetchScanCount();
+    fetchCounts();
     
     // Set up interval to fetch every 5 seconds
-    const interval = setInterval(fetchScanCount, 5000);
+    const interval = setInterval(fetchCounts, 5000);
     
     return () => clearInterval(interval);
   }, []);
@@ -60,7 +65,7 @@ export default function Entry() {
       console.log('AI Speech already triggered, skipping');
       return;
     }
-    
+
     // Clear any existing speech timeout
     if (speechTimeoutRef.current) {
       clearTimeout(speechTimeoutRef.current);
@@ -182,7 +187,9 @@ export default function Entry() {
       navigate('/qr-scan');
     } else {
       console.log('Desktop/laptop device detected, redirecting to projector page');
-      // For desktop/laptop devices, redirect to the projector page
+      // Store activation flag for projector scene
+      sessionStorage.setItem('activateProjectorScene', 'true');
+      console.log('Entry: Set activation flag in sessionStorage');
       navigate('/projector');
     }
   };
@@ -260,6 +267,7 @@ export default function Entry() {
               value={ENV.QR_URL}
               size={200}
               scanCount={scanCount}
+              deviceCount={deviceCount}
               onScan={handleActivation}
             />
           </div>

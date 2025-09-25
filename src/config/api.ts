@@ -1,13 +1,28 @@
-// API Configuration - Offline-First Approach
-// Always use localhost for offline mode
+// API Configuration - Dynamic API URL based on current hostname
 const viteApiUrl = (import.meta as any).env?.VITE_API_URL;
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const isOffline = !navigator.onLine; // Only consider truly offline (no internet connection)
 
-const API_BASE_URL = viteApiUrl || 'http://localhost:8000'; // Always local for offline mode
+// Dynamic API URL - use current hostname for network access
+const getApiBaseUrl = () => {
+  if (viteApiUrl) return viteApiUrl;
+  
+  const currentHost = window.location.hostname;
+  const currentPort = window.location.port;
+  
+  // If accessing via network IP, use the same IP for API
+  if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
+    return `http://${currentHost}:8000`;
+  }
+  
+  // Default to localhost for local development
+  return 'http://localhost:8000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Debug logging to see what's happening
-console.log('API Config Debug (Dynamic Port Mode):', {
+console.log('API Config Debug (Dynamic Network Mode):', {
   hostname: window.location.hostname,
   port: window.location.port,
   origin: window.location.origin,

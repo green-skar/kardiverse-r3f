@@ -12,6 +12,7 @@ interface EnhancedQRCodeProps {
   bgColor?: string;
   showCount?: boolean;
   scanCount?: number;
+  deviceCount?: number;
   onScan?: () => void;
   style?: React.CSSProperties;
   className?: string;
@@ -27,6 +28,7 @@ export default function EnhancedQRCode({
   bgColor = '#000000',
   showCount = true,
   scanCount = 0,
+  deviceCount = 0,
   onScan,
   style,
   className
@@ -212,25 +214,47 @@ export default function EnhancedQRCode({
         />
       </div>
 
-      {/* Scan Count Display */}
+      {/* Count Displays */}
       {showCount && (
-        <div
-          style={{
-            color: fgColor,
-            fontSize: '12px',
-            textAlign: 'center',
-            background: 'rgba(0, 0, 0, 0.7)',
-            padding: '8px 12px',
-            borderRadius: '15px',
-            border: `2px solid ${fgColor}66`,
-            transition: 'all 0.3s ease',
-            transform: pulseIntensity > 1 ? 'scale(1.1)' : 'scale(1)',
-            boxShadow: pulseIntensity > 1 ? `0 0 15px ${fgColor}88` : `0 0 5px ${fgColor}44`,
-            fontWeight: 'bold',
-            letterSpacing: '0.5px'
-          }}
-        >
-          Devices scanned: {scanCount}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+          {/* Scan Count Display */}
+          <div
+            style={{
+              color: fgColor,
+              fontSize: '12px',
+              textAlign: 'center',
+              background: 'rgba(0, 0, 0, 0.7)',
+              padding: '8px 12px',
+              borderRadius: '15px',
+              border: `2px solid ${fgColor}66`,
+              transition: 'all 0.3s ease',
+              transform: pulseIntensity > 1 ? 'scale(1.1)' : 'scale(1)',
+              boxShadow: pulseIntensity > 1 ? `0 0 15px ${fgColor}88` : `0 0 5px ${fgColor}44`,
+              fontWeight: 'bold',
+              letterSpacing: '0.5px'
+            }}
+          >
+            Scan count: {scanCount}
+          </div>
+          
+          {/* Device Count Display */}
+          <div
+            style={{
+              color: fgColor,
+              fontSize: '12px',
+              textAlign: 'center',
+              background: 'rgba(0, 0, 0, 0.7)',
+              padding: '8px 12px',
+              borderRadius: '15px',
+              border: `2px solid ${fgColor}66`,
+              transition: 'all 0.3s ease',
+              boxShadow: `0 0 5px ${fgColor}44`,
+              fontWeight: 'bold',
+              letterSpacing: '0.5px'
+            }}
+          >
+            Devices scanned: {deviceCount}
+          </div>
         </div>
       )}
 

@@ -15,7 +15,11 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-produc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,kardiverse-backend.onrender.com').split(',')
+# Allow all hosts in development, specific hosts in production
+if DEBUG:
+    ALLOWED_HOSTS = ['*']  # Allow all hosts in development
+else:
+    ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,kardiverse-backend.onrender.com').split(',')
 
 # Application definition
 INSTALLED_APPS = [
@@ -134,7 +138,7 @@ CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default=cors_origins_defau
 CORS_ALLOW_CREDENTIALS = True
 
 # Additional CORS settings for production
-CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only allow all origins in development
+CORS_ALLOW_ALL_ORIGINS = True  # Allow all origins for development and network access
 
 # Enhanced CORS origin function with platform auto-detection
 def cors_allow_origin(origin, request):

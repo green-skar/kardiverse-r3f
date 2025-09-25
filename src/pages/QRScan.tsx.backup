@@ -99,7 +99,7 @@ function AvatarScene({
             if (prev >= 1) {
               clearInterval(triangleAnimation);
               setIsAxisRotating(true);
-              setAxisRotationSpeed(-0.01); // Default anticlockwise rotation (slower)
+              setAxisRotationSpeed(-0.02); // Default anticlockwise rotation
               return 1;
             }
             return prev + 0.02; // 2 second animation
@@ -261,7 +261,7 @@ function AvatarScene({
   const handlePointerUp = () => {
     if (isMobile && isUserDragging) {
       // Continue rotation in the direction user was dragging
-      setAxisRotationSpeed(dragDirection * 0.01);
+      setAxisRotationSpeed(dragDirection * 0.02);
       setIsUserDragging(false);
     } else {
       setIsDragging(false);
@@ -627,7 +627,6 @@ export default function QRScan() {
   const [speechCompleted, setSpeechCompleted] = useState(false);
   const [isActivated, setIsActivated] = useState(false);
   const [showActivateButton, setShowActivateButton] = useState(false);
-  const [speechBlocked, setSpeechBlocked] = useState(false);
   const [mascotsVisible, setMascotsVisible] = useState(false);
   const [cycleActive, setCycleActive] = useState(false);
   const [isAxisRotating, setIsAxisRotating] = useState(false);
@@ -887,8 +886,6 @@ export default function QRScan() {
   const playMultiVoiceSpeech = async () => {
     try {
       setIsSpeechPlaying(true);
-      setSpeechBlocked(false);
-      
       const audioContext = new (window.AudioContext ||
         (window as any).webkitAudioContext)();
       
@@ -938,29 +935,14 @@ export default function QRScan() {
     } catch (error) {
       console.error("Error playing multi-voice speech:", error);
       setIsSpeechPlaying(false);
-      
-      // Check if it's an autoplay blocking error
-      if (error instanceof Error && error.name === 'NotAllowedError') {
-        console.log("Autoplay blocked, showing activate button");
-        setSpeechBlocked(true);
-        setShowActivateButton(true);
-        return;
-      }
-      
       // Fallback to single voice if multi-voice fails
-      try {
-        const speech = new SpeechSynthesisUtterance(
-          "Welcome to the Gates of Display, from Kardiverse."
-        );
-        speech.rate = 0.8;
-        speech.pitch = 1.0;
-        speech.volume = 0.8;
-        speechSynthesis.speak(speech);
-      } catch (fallbackError) {
-        console.error("Fallback speech also failed:", fallbackError);
-        setSpeechBlocked(true);
-        setShowActivateButton(true);
-      }
+      const speech = new SpeechSynthesisUtterance(
+        "Welcome to the Gates of Display, from Kardiverse."
+      );
+      speech.rate = 0.8;
+      speech.pitch = 1.0;
+      speech.volume = 0.8;
+      speechSynthesis.speak(speech);
     }
   };
 
@@ -1001,7 +983,6 @@ export default function QRScan() {
       setIsActivated(true);
       setSpeechCompleted(false);
       setMascotsVisible(false);
-      setSpeechBlocked(false);
       
       // Play chime sound first
       playChime();
@@ -1012,14 +993,8 @@ export default function QRScan() {
         
         // Then play multi-voice speech
         setTimeout(async () => {
-          try {
-            await playMultiVoiceSpeech();
-            setSpeechCompleted(true);
-          } catch (error) {
-            console.error("Failed to play voices on manual activation:", error);
-            setSpeechBlocked(true);
-            setShowActivateButton(true);
-          }
+          await playMultiVoiceSpeech();
+          setSpeechCompleted(true);
         }, 1000); // 1 second delay after chime
       }, 500); // 0.5 second delay for chime
       
@@ -1140,13 +1115,41 @@ export default function QRScan() {
 
   const responsiveSizing = getResponsiveSizing();
 
-  // Show activate button for QR code access, direct URL access, OR reload
-  // Note: Button visibility is now handled in the main useEffect above
-
-  // Always show activate button on load - no auto-play
+  // Show activate button only for QR code access or direct URL access
   useEffect(() => {
-    // Always show the activate button - no auto-activation
-    setShowActivateButton(true);
+    const isQRCodeAccess = checkIfQRCodeAccess();
+    if (isQRCodeAccess) {
+      setShowActivateButton(true);
+    }
+  }, []);
+
+  // Initial cycle for QR code users - show mascots and speech after scan detection
+  useEffect(() => {
+    // Only show mascots and start speech if this is a valid scan
+    const isQRCodeAccess = checkIfQRCodeAccess();
+    
+    if (isQRCodeAccess) {
+      // Show mascots after a short delay (chime will play when scan is detected)
+      setTimeout(() => {
+        setMascotsVisible(true);
+        
+        // Play multi-voice speech after mascots appear
+        setTimeout(async () => {
+          await playMultiVoiceSpeech();
+          setSpeechCompleted(true);
+          setIsActivated(true); // Also set activated for initial cycle
+        }, 1000); // 1 second delay after mascots appear
+      }, 1000); // 1 second delay after chime (chime plays when scan is detected)
+      
+      // Stop rotation after 30 seconds (button is already visible)
+      const timer = setTimeout(() => {
+        setIsAxisRotating(false); // Stop the mobile rotation
+        setAxisRotationSpeed(0); // Reset mobile rotation speed
+        setIsDesktopRotating(false); // Stop the desktop rotation
+      }, 30000);
+
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   return (
