@@ -24,9 +24,13 @@ def run_migrations():
     execute_from_command_line(['manage.py', 'migrate'])
     
     # Create initial scan count if it doesn't exist
-    from api.models import ScanCount
+    from api.models import ScanCount, DeviceCount
     scan_count = ScanCount.get_or_create_default()
     print(f"✅ Scan count initialized: {scan_count.count}")
+    
+    # Create initial device count if it doesn't exist
+    device_count = DeviceCount.get_or_create_default()
+    print(f"✅ Device count initialized: {device_count.count}")
     
     print("✅ Database setup complete!")
 

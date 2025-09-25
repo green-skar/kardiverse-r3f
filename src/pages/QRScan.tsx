@@ -7,6 +7,7 @@ import api from '../config/api';
 import Avatar2DFallback from '../components/Avatar2DFallback';
 import { useAppStore } from '../store';
 import { detectDevice } from '../utils/deviceDetection';
+import { deviceFingerprint } from '../utils/deviceFingerprint';
 import ENV from '../config/env';
 
 // 3D Avatar Component
@@ -570,10 +571,12 @@ export default function QRScan() {
   const [isSpeechPlaying, setIsSpeechPlaying] = useState(false);
   const [screenSize, setScreenSize] = useState({ width: 0, height: 0 });
   const [scanCount, setScanCount] = useState(0);
+  const [deviceCount, setDeviceCount] = useState(0);
   const [hasLoggedScan, setHasLoggedScan] = useState(false);
   const [modelsLoaded, setModelsLoaded] = useState(false); // Track when all 3D models are loaded
   const [scanAnimationFrame, setScanAnimationFrame] = useState(0); // For scanning line animations
   const [scanCountHighlight, setScanCountHighlight] = useState(false); // For scan count update animation
+  const [deviceCountHighlight, setDeviceCountHighlight] = useState(false); // For device count update animation
   // Removed individual model loading states - using simple modelsLoaded state
 
   // Initialize store state, device detection, and API
@@ -600,14 +603,19 @@ export default function QRScan() {
     // Store is already initialized by Zustand, no additional setup needed
   }, []);
 
-  // Fetch scan count and log scan only if this is a genuine QR code scan
+  // Fetch scan count and device count, and log scan only if this is a genuine QR code scan
   useEffect(() => {
-    const fetchScanCountAndLog = async () => {
+    const fetchCountsAndLog = async () => {
       try {
-        // Fetch current scan count
-        const count = await api.getScanCount();
-        setScanCount(count);
-        console.log('QRScan: Current scan count:', count);
+        // Fetch current scan count and device count
+        const [scanCountData, deviceCountData] = await Promise.all([
+          api.getScanCount(),
+          api.getDeviceCount()
+        ]);
+        
+        setScanCount(scanCountData);
+        setDeviceCount(deviceCountData);
+        console.log('QRScan: Current scan count:', scanCountData, 'Device count:', deviceCountData);
 
         // Check if this is a genuine QR code scan (not a page reload or navigation)
         const isQRCodeAccess = checkIfQRCodeAccess();
@@ -635,24 +643,55 @@ export default function QRScan() {
             }, 1000); // 1 second delay after mascots appear
           }, 500); // 0.5 second delay after chime
           
-          await api.logScan(undefined, {
+          // Generate device fingerprint
+          const fingerprint = await deviceFingerprint.getFingerprint();
+          console.log('QRScan: Device fingerprint generated:', fingerprint);
+          
+          // Log the device scan event (includes both scan and device tracking)
+          const deviceData = {
+            user_agent: navigator.userAgent,
+            screen_resolution: `${screen.width}x${screen.height}`,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            browser_info: {
+              language: navigator.language,
+              platform: navigator.platform,
+              cookieEnabled: navigator.cookieEnabled
+            },
+            hardware_info: {
+              cores: navigator.hardwareConcurrency,
+              memory: (navigator as any).deviceMemory,
+              maxTouchPoints: navigator.maxTouchPoints
+            }
+          };
+          
+          const logResult = await api.logDeviceScan({
+            device_fingerprint: fingerprint,
+            device_data: deviceData,
             type: 'qr',
-            timestamp: new Date().toISOString(),
-            userAgent: navigator.userAgent,
-            source: 'qrscan_page',
-            page: 'QRScan',
-            sessionId: getSessionId()
+            metadata: {
+              timestamp: new Date().toISOString(),
+              source: 'qrscan_page',
+              page: 'QRScan',
+              sessionId: getSessionId()
+            }
           });
           
-          // Fetch updated scan count immediately after logging
-          const updatedCount = await api.getScanCount();
-          setScanCount(updatedCount);
+          // Update counts from the response
+          setScanCount(logResult.scan_count);
+          setDeviceCount(logResult.device_count);
           
-          // Trigger highlight animation for scan count update
+          // Trigger highlight animations
           setScanCountHighlight(true);
-          setTimeout(() => setScanCountHighlight(false), 2000); // Highlight for 2 seconds
+          if (logResult.is_new_device) {
+            setDeviceCountHighlight(true);
+          }
           
-          console.log('QRScan: Scan logged, updated count:', updatedCount);
+          setTimeout(() => {
+            setScanCountHighlight(false);
+            setDeviceCountHighlight(false);
+          }, 2000); // Highlight for 2 seconds
+          
+          console.log('QRScan: Device scan logged:', logResult);
           
           setHasLoggedScan(true);
           console.log('QRScan: Valid scan event logged (QR or direct access)');
@@ -662,11 +701,11 @@ export default function QRScan() {
           console.log('QRScan: Page accessed via navigation/reload, not logging scan');
         }
       } catch (error) {
-        console.warn('QRScan: Failed to fetch scan count or log scan:', error);
+        console.warn('QRScan: Failed to fetch counts or log scan:', error);
       }
     };
 
-    fetchScanCountAndLog();
+    fetchCountsAndLog();
   }, [hasLoggedScan]);
 
   // Helper function to check if this is a genuine QR code access or direct URL access
@@ -1535,7 +1574,7 @@ export default function QRScan() {
         </div>
       </div>
 
-      {/* Scan Count Display */}
+      {/* Analytics Display */}
       <div
         style={{
           position: 'absolute',
@@ -1549,23 +1588,38 @@ export default function QRScan() {
           fontSize: responsiveSizing.homeButtonFontSize,
           fontWeight: 'bold',
           display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: '4px',
           zIndex: 10,
           backdropFilter: 'blur(10px)',
           boxShadow: '0 0 15px rgba(57, 230, 255, 0.3)',
-          transition: 'all 0.3s ease'
+          transition: 'all 0.3s ease',
+          minWidth: '120px'
         }}
       >
-        <span style={{ fontSize: screenSize.width < 768 ? '14px' : screenSize.width < 1024 ? '16px' : '18px' }}>📱</span>
-        <span style={{
-          color: scanCountHighlight ? '#39e6ff' : 'inherit',
-          textShadow: scanCountHighlight ? '0 0 10px #39e6ff, 0 0 20px #39e6ff' : 'none',
-          transition: 'all 0.3s ease-in-out',
-          fontWeight: scanCountHighlight ? 'bold' : 'normal'
-        }}>
-          Scans: {scanCount}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: screenSize.width < 768 ? '14px' : screenSize.width < 1024 ? '16px' : '18px' }}>📱</span>
+          <span style={{
+            color: scanCountHighlight ? '#39e6ff' : 'inherit',
+            textShadow: scanCountHighlight ? '0 0 10px #39e6ff, 0 0 20px #39e6ff' : 'none',
+            transition: 'all 0.3s ease-in-out',
+            fontWeight: scanCountHighlight ? 'bold' : 'normal'
+          }}>
+            Scan Count: {scanCount}
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: screenSize.width < 768 ? '14px' : screenSize.width < 1024 ? '16px' : '18px' }}>🔢</span>
+          <span style={{
+            color: deviceCountHighlight ? '#39e6ff' : 'inherit',
+            textShadow: deviceCountHighlight ? '0 0 10px #39e6ff, 0 0 20px #39e6ff' : 'none',
+            transition: 'all 0.3s ease-in-out',
+            fontWeight: deviceCountHighlight ? 'bold' : 'normal'
+          }}>
+            Devices scanned: {deviceCount}
+          </span>
+        </div>
       </div>
     </div>
   );

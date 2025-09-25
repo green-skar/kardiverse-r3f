@@ -11,7 +11,7 @@ import requests
 import base64
 import os
 
-from .models import ScanCount, ScanLog, AvatarAction
+from .models import ScanCount, ScanLog, AvatarAction, DeviceCount, Device
 from .serializers import ScanCountSerializer, ScanLogSerializer, AvatarActionSerializer, LogScanSerializer
 
 
@@ -116,6 +116,119 @@ def get_avatar_actions(request):
         serializer = AvatarActionSerializer(actions, many=True)
         return Response(serializer.data)
     except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# Device Tracking Endpoints
+@api_view(['GET'])
+def get_device_count(request):
+    """Get the current device count"""
+    try:
+        print(f"DEBUG: get_device_count called from {request.META.get('HTTP_ORIGIN', 'unknown')}")
+        device_count = DeviceCount.get_or_create_default()
+        print(f"DEBUG: Returning device count: {device_count.count}")
+        return Response({'count': device_count.count})
+    except Exception as e:
+        print(f"DEBUG: Error in get_device_count: {str(e)}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+def log_device_scan(request):
+    """Log a device scan and handle device tracking"""
+    try:
+        # Get device fingerprint from request
+        device_fingerprint = request.data.get('device_fingerprint')
+        if not device_fingerprint:
+            return Response({'error': 'Device fingerprint required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get device data
+        device_data = request.data.get('device_data', {})
+        
+        # Get or create device
+        device, is_new_device = Device.get_or_create_device(device_fingerprint, device_data)
+        
+        # If it's a new device, increment device count
+        if is_new_device:
+            device_count = DeviceCount.get_or_create_default()
+            device_count.increment()
+            print(f"DEBUG: New device detected, device count incremented to {device_count.count}")
+        else:
+            # Update existing device's scan count
+            device.increment_scan()
+            print(f"DEBUG: Existing device, total scans: {device.total_scans}")
+        
+        # Always increment scan count
+        scan_count = ScanCount.get_or_create_default()
+        new_scan_count = scan_count.increment()
+        
+        # Get current device count
+        current_device_count = DeviceCount.get_or_create_default().count
+        
+        return Response({
+            'ok': True,
+            'scan_count': new_scan_count,
+            'device_count': current_device_count,
+            'is_new_device': is_new_device,
+            'device_total_scans': device.total_scans
+        })
+        
+    except Exception as e:
+        print(f"DEBUG: Error in log_device_scan: {str(e)}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def get_analytics(request):
+    """Get combined analytics (scan count + device count)"""
+    try:
+        scan_count = ScanCount.get_or_create_default()
+        device_count = DeviceCount.get_or_create_default()
+        
+        # Calculate average scans per device
+        avg_scans_per_device = 0
+        if device_count.count > 0:
+            avg_scans_per_device = round(scan_count.count / device_count.count, 1)
+        
+        return Response({
+            'scan_count': scan_count.count,
+            'device_count': device_count.count,
+            'avg_scans_per_device': avg_scans_per_device,
+            'last_updated': scan_count.updated_at.isoformat()
+        })
+        
+    except Exception as e:
+        print(f"DEBUG: Error in get_analytics: {str(e)}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def get_devices(request):
+    """Get list of devices with their scan history"""
+    try:
+        limit = int(request.GET.get('limit', 50))
+        devices = Device.objects.all()[:limit]
+        
+        device_list = []
+        for device in devices:
+            device_list.append({
+                'id': device.id,
+                'fingerprint': device.device_fingerprint[:8] + '...',
+                'first_scan': device.first_scan.isoformat(),
+                'last_scan': device.last_scan.isoformat(),
+                'total_scans': device.total_scans,
+                'user_agent': device.user_agent,
+                'screen_resolution': device.screen_resolution,
+                'timezone': device.timezone
+            })
+        
+        return Response({
+            'devices': device_list,
+            'total_devices': Device.objects.count()
+        })
+        
+    except Exception as e:
+        print(f"DEBUG: Error in get_devices: {str(e)}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

@@ -15,6 +15,12 @@ urlpatterns = [
     path('avatar-action/', views.trigger_avatar_action, name='avatar_action'),
     path('avatar-actions/', views.get_avatar_actions, name='avatar_actions'),
     
+    # Device tracking endpoints
+    path('device-count/', views.get_device_count, name='device_count'),
+    path('log-device-scan/', views.log_device_scan, name='log_device_scan'),
+    path('analytics/', views.get_analytics, name='analytics'),
+    path('devices/', views.get_devices, name='devices'),
+    
     # Mux API proxy endpoints - REMOVED FOR OFFLINE MODE
     # All video processing now handled locally in the frontend
 ]

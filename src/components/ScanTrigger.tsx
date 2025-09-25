@@ -20,6 +20,7 @@ export default function ScanTrigger({
   debugMode = false
 }: ScanTriggerProps) {
   const [scanCount, setScanCount] = useState(0);
+  const [deviceCount, setDeviceCount] = useState(0);
   const [isScanning, setIsScanning] = useState(false);
   const [lastScanTime, setLastScanTime] = useState<Date | null>(null);
   const [scanType, setScanType] = useState<'qr' | 'nfc' | 'manual' | null>(null);
@@ -47,20 +48,24 @@ export default function ScanTrigger({
     }
   }, [enableNFC, enableQR, debugMode]);
 
-  // Fetch scan count from server
+  // Fetch scan count and device count from server
   useEffect(() => {
-    const fetchCount = async () => {
+    const fetchCounts = async () => {
       try {
-        const count = await api.getScanCount();
-        setScanCount(count);
-        if (debugMode) console.log('Scan count updated:', count);
+        const [scanCountData, deviceCountData] = await Promise.all([
+          api.getScanCount(),
+          api.getDeviceCount()
+        ]);
+        setScanCount(scanCountData);
+        setDeviceCount(deviceCountData);
+        if (debugMode) console.log('Counts updated - Scan:', scanCountData, 'Device:', deviceCountData);
       } catch (error) {
         // Silently handle API errors - backend might not be running
       }
     };
 
-    fetchCount();
-    const interval = setInterval(fetchCount, 5000); // Check every 5 seconds
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 5000); // Check every 5 seconds
     return () => clearInterval(interval);
   }, [debugMode]);
 
@@ -254,6 +259,7 @@ export default function ScanTrigger({
       <div style={{ marginBottom: '8px' }}>
         <div>Status: {isScanning ? 'Active' : 'Ready'}</div>
         <div>Scan Count: {scanCount}</div>
+        <div>Device Count: {deviceCount}</div>
         {lastScanTime && (
           <div>Last Scan: {lastScanTime.toLocaleTimeString()}</div>
         )}
@@ -310,6 +316,7 @@ export function useScanTrigger(onActivation: () => void, options?: Partial<ScanT
   const [scanState, setScanState] = useState({
     isScanning: false,
     scanCount: 0,
+    deviceCount: 0,
     lastScanTime: null as Date | null,
     scanType: null as 'qr' | 'nfc' | 'manual' | null
   });
